@@ -38,3 +38,8 @@ Desktop.ini
 .reference-repos/
 reference-repos/
 
+# Local research-tool build products
+**/__pycache__/
+*.py[cod]
+scripts/
+
