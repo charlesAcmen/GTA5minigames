@@ -19,12 +19,12 @@ Windows 桌面
 
 主要视觉参考：
 
-- `hackconnect/docs/windows.jpg`：运行时桌面背景的来源。
-- `hackconnect/docs/level2.jpg`：My Computer 一级窗口的布局参考。
-- `files/docs/Hacking-GTAVe_MyComputer.webp`：My Computer 原始界面参考。
-- `files/docs/Hacking-GTAVe_ExternalDevice_connected.webp`：一级菜单图标 hover 的真值。
-- `hackconnect/docs/Hacking-GTAVe_HackConnect_exe_in_action.webp`：游戏运行界面真值。
-- `hackconnect/docs/Hacking-GTAVe_HackConnect_exe_complete.webp`：成功界面参考。
+- `files/hackconnect/docs/windows.jpg`：运行时桌面背景的来源。
+- `files/hackconnect/docs/level2.jpg`：My Computer 一级窗口的布局参考。
+- `files/Hacking-GTAVe_MyComputer.webp`：My Computer 原始界面参考。
+- `files/Hacking-GTAVe_ExternalDevice_connected.webp`：一级菜单图标 hover 的真值。
+- `files/hackconnect/docs/Hacking-GTAVe_HackConnect_exe_in_action.webp`：游戏运行界面真值。
+- `files/hackconnect/docs/Hacking-GTAVe_HackConnect_exe_complete.webp`：成功界面参考。
 
 参考截图中的左上角教程、任务字幕、TEAM LIVES 和右下角 GTA 操作提示属于游戏世界 HUD，不属于电脑小游戏，必须排除。
 
@@ -309,21 +309,27 @@ success → External Device
 
 ## 12. 声音
 
-当前版本不加载、合成或播放任何声音。未来音频应放入对应游戏目录，例如：
+当前版本使用用户在 `files/audio` 中提供的正式 WAV 副本。所有小游戏共用的运行时音频位于：
 
 ```text
-src/games/hackconnect/assets/audio/
+src/assets/audio/
 ```
 
-音频绑定不得改变现有状态机，只监听开始、移动、提交错误、成功和失败事件。
+- `move.wav`：键盘/鼠标改变选区，以及每1.6秒数字整体滚动时播放；音量0.24。
+- `hit.wav`：正确提交时播放；音量0.42。
+- `wrong.wav`：每次错误提交时播放；音量0.42。
+- `success.wav`：首次从 playing 进入 success 时播放一次，音量0.48。
+- `failure.wav`：首次从 playing 进入 failure 时播放一次，音量0.46。
+
+声音绑定不得改变游戏状态机。倒计时以20Hz刷新显示，但使用真实经过时间扣减。
 
 ## 13. 项目边界与新增游戏规则
 
-每个游戏必须自包含：
+每个游戏的界面与逻辑必须自包含；五种标准状态音效例外，统一由 `src/audio/useGameAudio.ts` 和 `src/assets/audio/` 提供：
 
 ```text
 src/games/<game-id>/
-├─ assets/
+├─ assets/                 # 仅游戏专属图片等资源
 ├─ <Game>.tsx
 ├─ <Game>.module.css
 ├─ logic.ts
@@ -342,7 +348,7 @@ src/games/<game-id>/
 - 打开 My Computer 时 Local 没有默认 hover。
 - hover 矩形只覆盖图标，与标签之间存在可见空隙。
 - My Computer、External Device 和 HackConnect 均单击打开。
-- BruteForce 不启动。
+- BruteForce 可单击启动，锁定列不可再次选择。
 - 鼠标网格内选择块以指针为中心，而不是从指针位置向右延伸。
 - 鼠标网格外的斜向手势只产生一个主轴动作。
 - 四次错误进入 failure；failure 任意键开始新一轮。
