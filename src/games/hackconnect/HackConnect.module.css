@@ -1,0 +1,167 @@
+.window {
+  position: absolute;
+  z-index: 20;
+  left: 186px;
+  top: 52px;
+  width: 900px;
+  height: 616px;
+  padding: 45px 10px 8px;
+  overflow: hidden;
+  background: #1a44b0;
+  border-radius: 9px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 18%);
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: #ededed;
+  background: #000;
+}
+
+.header {
+  position: absolute;
+  top: 15px;
+  left: 0;
+  width: 100%;
+  height: 39px;
+}
+
+.brand {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 405px;
+  height: 39px;
+  transform: translateX(-50%);
+}
+
+.securityIcon {
+  flex: 0 0 auto;
+  width: 39px;
+  height: 39px;
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 38%));
+}
+
+.wordmark {
+  width: 357px;
+  height: 34px;
+  object-fit: fill;
+  image-rendering: auto;
+}
+
+.signal {
+  position: absolute;
+  top: 17px;
+  right: 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 28px;
+}
+
+.signal span {
+  display: block;
+  width: 8px;
+  background: #25ccd0;
+  box-shadow: 0 0 1px rgb(37 204 208 / 70%);
+}
+
+.signal span:nth-child(1) { height: 9px; }
+.signal span:nth-child(2) { height: 15px; }
+.signal span:nth-child(3) { height: 21px; }
+.signal span:nth-child(4) { height: 27px; }
+
+.signal .signalEmpty {
+  background: #3e3e3e;
+  box-shadow: none;
+}
+
+.target {
+  position: absolute;
+  top: 64px;
+  left: 0;
+  width: 100%;
+  color: #f3140b;
+  font-size: 47px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+}
+
+.targetSuccess {
+  color: #21ac21;
+}
+
+.timer {
+  position: absolute;
+  top: 134px;
+  left: 0;
+  width: 100%;
+  color: #20a921;
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
+}
+
+.grid {
+  position: absolute;
+  top: 172px;
+  left: 110px;
+  display: grid;
+  grid-template-columns: repeat(10, 64px);
+  grid-auto-rows: 40px;
+  width: 640px;
+}
+
+.number {
+  width: 64px;
+  height: 40px;
+  padding: 0;
+  color: #ededed;
+  font-size: 39px;
+  font-weight: 400;
+  line-height: 40px;
+  text-align: center;
+  cursor: default;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+}
+
+.numberSelected {
+  color: #ed050b;
+}
+
+.outcome {
+  position: absolute;
+  top: 180px;
+  left: 0;
+  width: 100%;
+  color: #20a921;
+  font-size: 25px;
+  line-height: 1.22;
+  text-align: center;
+}
+
+.errorFlash::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background: #e61717;
+  animation: error-pulse 360ms ease-out both;
+}
+
+@keyframes error-pulse {
+  0% { opacity: 0.26; }
+  45% { opacity: 0.08; }
+  100% { opacity: 0; }
+}

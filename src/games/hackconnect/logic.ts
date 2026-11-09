@@ -1,0 +1,126 @@
+export const GRID_COLUMNS = 10
+export const GRID_ROWS = 8
+export const GRID_SIZE = GRID_COLUMNS * GRID_ROWS
+export const TARGET_LENGTH = 4
+export const INITIAL_SELECTION = 33
+export const INITIAL_LIVES = 4
+export const GAME_DURATION_MS = 60_000
+export const SHIFT_INTERVAL_MS = 1_600
+
+export type GamePhase = 'playing' | 'success' | 'failure'
+
+export type HackConnectState = {
+  values: string[]
+  target: string[]
+  targetStart: number
+  selectionStart: number
+  lives: number
+  remainingMs: number
+  phase: GamePhase
+  flashVersion: number
+}
+
+export type HackConnectAction =
+  | { type: 'move'; delta: number }
+  | { type: 'select'; index: number }
+  | { type: 'shift' }
+  | { type: 'tick'; elapsedMs: number }
+  | { type: 'submit' }
+  | { type: 'restart' }
+
+function randomOctet() {
+  return Math.floor(Math.random() * 99).toString().padStart(2, '0')
+}
+
+function wrap(index: number) {
+  return ((index % GRID_SIZE) + GRID_SIZE) % GRID_SIZE
+}
+
+export function createInitialState(): HackConnectState {
+  const values = Array.from({ length: GRID_SIZE }, randomOctet)
+  const target = Array.from({ length: TARGET_LENGTH }, randomOctet)
+  const targetStart = Math.floor(Math.random() * GRID_SIZE)
+
+  for (let offset = 0; offset < TARGET_LENGTH; offset += 1) {
+    values[wrap(targetStart + offset)] = target[offset]
+  }
+
+  return {
+    values,
+    target,
+    targetStart,
+    selectionStart: INITIAL_SELECTION,
+    lives: INITIAL_LIVES,
+    remainingMs: GAME_DURATION_MS,
+    phase: 'playing',
+    flashVersion: 0,
+  }
+}
+
+export function selectedIndexes(start: number) {
+  return Array.from({ length: TARGET_LENGTH }, (_, offset) => wrap(start + offset))
+}
+
+export function isSelected(index: number, start: number) {
+  return selectedIndexes(start).includes(index)
+}
+
+export function hackConnectReducer(
+  state: HackConnectState,
+  action: HackConnectAction,
+): HackConnectState {
+  if (action.type === 'restart') {
+    return createInitialState()
+  }
+
+  if (state.phase !== 'playing') {
+    return state
+  }
+
+  switch (action.type) {
+    case 'move':
+      return {
+        ...state,
+        selectionStart: wrap(state.selectionStart + action.delta),
+      }
+    case 'select':
+      return { ...state, selectionStart: wrap(action.index) }
+    case 'shift': {
+      const [first, ...rest] = state.values
+      return {
+        ...state,
+        values: [...rest, first],
+        targetStart: wrap(state.targetStart - 1),
+      }
+    }
+    case 'tick': {
+      const remainingMs = Math.max(0, state.remainingMs - action.elapsedMs)
+      return {
+        ...state,
+        remainingMs,
+        phase: remainingMs === 0 ? 'failure' : state.phase,
+      }
+    }
+    case 'submit': {
+      if (state.selectionStart === state.targetStart) {
+        return { ...state, phase: 'success' }
+      }
+
+      const lives = state.lives - 1
+      return {
+        ...state,
+        lives,
+        phase: lives === 0 ? 'failure' : 'playing',
+        flashVersion: state.flashVersion + 1,
+      }
+    }
+  }
+}
+
+export function formatCountdown(milliseconds: number) {
+  const clamped = Math.max(0, Math.floor(milliseconds))
+  const minutes = Math.floor(clamped / 60_000)
+  const seconds = Math.floor((clamped % 60_000) / 1_000)
+  const millis = clamped % 1_000
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}:${String(millis).padStart(3, '0')}`
+}
