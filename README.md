@@ -1,6 +1,6 @@
 # GTA V 2D Minigames Web Recreation
 
-一个以 1280×720 GTA V 原生逻辑画布为基础的本地 Web 项目，目标是逐个复刻 GTA V 与 GTA Online 中出现的 2D 小游戏。目前 `HackConnect.exe` 与 `BruteForce.exe` 均可游玩。
+一个以 1280×720 GTA V 原生逻辑画布为基础的本地 Web 项目，目标是逐个复刻 GTA V 与 GTA Online 中出现的 2D 小游戏。目前 `HackConnect.exe`、`BruteForce.exe` 与 `DataCrack.exe` 均可游玩。
 
 ## 本地运行
 
@@ -25,7 +25,8 @@ src/
 │  ├─ registry.ts         # 所有小游戏的统一注册表
 │  ├─ types.ts            # ProgramDefinition 与游戏入口类型
 │  ├─ hackconnect/        # HackConnect 的组件、逻辑、样式与专属资源
-│  └─ bruteforce/         # BruteForce 的入口信息与专属资源
+│  ├─ bruteforce/         # BruteForce 的组件、逻辑、样式与专属资源
+│  └─ datacrack/          # Data Crack 的组件、逻辑、样式与专属资源
 ├─ shell/                  # 桌面、My Computer、External Device 与系统图标
 └─ styles/                 # 全局基础样式
 ```
@@ -36,7 +37,7 @@ src/
 
 ## 复刻规范
 
-HackConnect 的规范见 [files/docs/HACKCONNECT_REPLICA_SPEC.md](files/docs/HACKCONNECT_REPLICA_SPEC.md)，BruteForce 的规范见 [files/docs/BRUTEFORCE_REPLICA_SPEC.md](files/docs/BRUTEFORCE_REPLICA_SPEC.md)。修改实现时，应同步更新文档。
+HackConnect、BruteForce 与 Data Crack 的复刻规范分别见 `files/docs/` 下对应的 `*_REPLICA_SPEC.md`。修改实现时，应同步更新文档。
 
 ## 当前限制
 

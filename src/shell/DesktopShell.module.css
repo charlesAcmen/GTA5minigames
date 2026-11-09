@@ -191,8 +191,8 @@
   position: absolute;
   z-index: 10;
   top: 198px;
-  left: 557px;
-  width: 326px;
+  left: 486px;
+  width: 468px;
   height: 217px;
   padding: 40px 18px 18px;
   background: #fff;
@@ -214,8 +214,7 @@
   top: 35px;
   left: 36px;
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 104px;
+  grid-template-columns: repeat(3, 104px);
   column-gap: 38px;
 }
 
