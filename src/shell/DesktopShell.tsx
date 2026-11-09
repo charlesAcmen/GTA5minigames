@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { Suspense, useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import desktopWallpaper from '../assets/desktop/windows.jpg'
 import { findProgram, programs } from '../games/registry'
 import { DeviceIcon, DriveIcon, NetworkIcon } from './SystemIcons'
@@ -25,6 +25,7 @@ type ShellAction =
   | { type: 'move-computer'; direction: 1 | -1 }
   | { type: 'open-external' }
   | { type: 'select-program'; programId: string }
+  | { type: 'move-program'; direction: 1 | -1 }
   | { type: 'open-program'; programId: string }
   | { type: 'back' }
   | { type: 'clear-selection' }
@@ -60,6 +61,17 @@ function shellReducer(state: ShellState, action: ShellAction): ShellState {
       return { ...state, view: 'external', computerSelected: 'external', programSelected: null }
     case 'select-program':
       return { ...state, programSelected: action.programId }
+    case 'move-program': {
+      const available = programs.filter((program) => program.component)
+      if (available.length === 0) return state
+      if (state.programSelected === null) {
+        const first = action.direction === 1 ? available[0] : available.at(-1) ?? available[0]
+        return { ...state, programSelected: first.id }
+      }
+      const current = Math.max(0, available.findIndex((program) => program.id === state.programSelected))
+      const next = (current + action.direction + available.length) % available.length
+      return { ...state, programSelected: available[next].id }
+    }
     case 'open-program':
       return {
         ...state,
@@ -100,53 +112,53 @@ function useStageScale() {
 
 export function DesktopShell() {
   const [state, dispatch] = useReducer(shellReducer, initialShellState)
+  const stateRef = useRef(state)
   const scale = useStageScale()
   const exitGame = useCallback(() => dispatch({ type: 'back' }), [])
+  stateRef.current = state
 
   useEffect(() => {
-    if (state.view === 'game') return
-
     const handleKeyDown = (event: KeyboardEvent) => {
+      const currentState = stateRef.current
+      if (currentState.view === 'game') return
       if (event.key === 'Escape') {
         event.preventDefault()
         dispatch({ type: 'back' })
         return
       }
 
-      if (state.view === 'desktop') {
+      if (currentState.view === 'desktop') {
         if (event.key.startsWith('Arrow')) {
           event.preventDefault()
           dispatch({ type: 'select-desktop' })
-        } else if (event.key === 'Enter' && state.desktopSelected) {
+        } else if (event.key === 'Enter' && currentState.desktopSelected) {
           event.preventDefault()
           dispatch({ type: 'open-computer' })
         }
         return
       }
 
-      if (state.view === 'computer') {
+      if (currentState.view === 'computer') {
         if (event.key === 'ArrowUp' || event.key === 'w' || event.key === 'W') {
           event.preventDefault()
           dispatch({ type: 'move-computer', direction: -1 })
         } else if (event.key === 'ArrowDown' || event.key === 's' || event.key === 'S') {
           event.preventDefault()
           dispatch({ type: 'move-computer', direction: 1 })
-        } else if (event.key === 'Enter' && state.computerSelected === 'external') {
+        } else if (event.key === 'Enter' && currentState.computerSelected === 'external') {
           event.preventDefault()
           dispatch({ type: 'open-external' })
         }
         return
       }
 
-      if (state.view === 'external') {
+      if (currentState.view === 'external') {
         if (event.key.startsWith('Arrow')) {
           event.preventDefault()
-          const firstLaunchable = programs.find((program) => program.component)
-          if (firstLaunchable) {
-            dispatch({ type: 'select-program', programId: firstLaunchable.id })
-          }
+          const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1
+          dispatch({ type: 'move-program', direction })
         } else if (event.key === 'Enter') {
-          const program = findProgram(state.programSelected)
+          const program = findProgram(currentState.programSelected)
           if (!program?.component) return
           event.preventDefault()
           dispatch({ type: 'open-program', programId: program.id })
@@ -156,7 +168,7 @@ export function DesktopShell() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state])
+  }, [])
 
   const showComputer = state.view === 'computer' || state.view === 'external'
   const activeProgram = findProgram(state.activeProgramId)
@@ -243,7 +255,11 @@ export function DesktopShell() {
           </section>
         ) : null}
 
-        {state.view === 'game' && ActiveGame ? <ActiveGame onExit={exitGame} /> : null}
+        {state.view === 'game' && ActiveGame ? (
+          <Suspense fallback={null}>
+            <ActiveGame onExit={exitGame} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   )

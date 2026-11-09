@@ -1,12 +1,13 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { memo, useCallback, useEffect, useReducer, useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { useGameAudio } from '../../audio/useGameAudio'
 import wordmark from './assets/wordmark.webp'
 import styles from './HackConnect.module.css'
 import {
   GRID_COLUMNS,
   GRID_ROWS,
-  SHIFT_INTERVAL_MS,
   TARGET_LENGTH,
+  TIMER_UPDATE_INTERVAL_MS,
   createInitialState,
   formatCountdown,
   hackConnectReducer,
@@ -52,30 +53,80 @@ function SecurityGlobeIcon() {
   )
 }
 
+type NumberGridProps = {
+  values: string[]
+  selectionStart: number
+  onPointerSelect: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onPointerLeave: () => void
+  onCellClick: (index: number, highlighted: boolean) => void
+}
+
+const NumberGrid = memo(function NumberGrid({
+  values,
+  selectionStart,
+  onPointerSelect,
+  onPointerLeave,
+  onCellClick,
+}: NumberGridProps) {
+  return (
+    <div
+      className={styles.grid}
+      role="grid"
+      aria-label="IP address grid"
+      onPointerEnter={onPointerSelect}
+      onPointerMove={onPointerSelect}
+      onPointerLeave={onPointerLeave}
+    >
+      {values.map((value, index) => {
+        const highlighted = isSelected(index, selectionStart)
+        return (
+          <button
+            className={`${styles.number} ${highlighted ? styles.numberSelected : ''}`}
+            key={index}
+            onClick={() => onCellClick(index, highlighted)}
+            type="button"
+            role="gridcell"
+            aria-label={`${value}${highlighted ? ', selected' : ''}`}
+          >
+            {value}
+          </button>
+        )
+      })}
+    </div>
+  )
+})
+
 export function HackConnect({ onExit }: HackConnectProps) {
   const [state, dispatch] = useReducer(hackConnectReducer, undefined, createInitialState)
   const stateRef = useRef(state)
   const pointerRef = useRef({ x: 0, y: 0, deltaX: 0, deltaY: 0, ready: false })
-  const shiftAccumulatorRef = useRef(0)
+  const gridBoundsRef = useRef<DOMRect | null>(null)
 
   stateRef.current = state
+  useGameAudio({
+    phase: state.phase,
+    moveToken: `${state.selectionStart}:${state.shiftVersion}`,
+    hitVersion: state.phase === 'success' ? 1 : 0,
+    wrongVersion: state.flashVersion,
+  })
 
   useEffect(() => {
     let frameId = 0
     let lastTime = performance.now()
+    let pendingElapsed = 0
 
     const animate = (now: number) => {
       const elapsed = Math.max(0, now - lastTime)
       lastTime = now
 
       if (stateRef.current.phase === 'playing') {
-        dispatch({ type: 'tick', elapsedMs: elapsed })
-        shiftAccumulatorRef.current += elapsed
-
-        while (shiftAccumulatorRef.current >= SHIFT_INTERVAL_MS) {
-          dispatch({ type: 'shift' })
-          shiftAccumulatorRef.current -= SHIFT_INTERVAL_MS
+        pendingElapsed += elapsed
+        if (pendingElapsed >= TIMER_UPDATE_INTERVAL_MS) {
+          dispatch({ type: 'advance', elapsedMs: pendingElapsed })
+          pendingElapsed = 0
         }
+      } else {
+        pendingElapsed = 0
       }
 
       frameId = requestAnimationFrame(animate)
@@ -88,7 +139,7 @@ export function HackConnect({ onExit }: HackConnectProps) {
     }
   }, [])
 
-  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const pointer = pointerRef.current
     if (!pointer.ready) {
       pointer.x = event.clientX
@@ -114,19 +165,21 @@ export function HackConnect({ onExit }: HackConnectProps) {
 
     pointer.deltaX = 0
     pointer.deltaY = 0
-  }
+  }, [])
 
-  const resetPointer = () => {
+  const resetPointer = useCallback(() => {
     pointerRef.current.ready = false
     pointerRef.current.deltaX = 0
     pointerRef.current.deltaY = 0
-  }
+    gridBoundsRef.current = null
+  }, [])
 
-  const selectFromGridPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const selectFromGridPointer = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     event.stopPropagation()
     if (stateRef.current.phase !== 'playing') return
 
-    const bounds = event.currentTarget.getBoundingClientRect()
+    const bounds = gridBoundsRef.current ?? event.currentTarget.getBoundingClientRect()
+    gridBoundsRef.current = bounds
     const columnPosition = Math.min(
       GRID_COLUMNS,
       Math.max(0, ((event.clientX - bounds.left) / bounds.width) * GRID_COLUMNS),
@@ -142,8 +195,15 @@ export function HackConnect({ onExit }: HackConnectProps) {
     if (stateRef.current.selectionStart !== index) {
       dispatch({ type: 'select', index })
     }
-    resetPointer()
-  }
+    pointerRef.current.ready = false
+    pointerRef.current.deltaX = 0
+    pointerRef.current.deltaY = 0
+  }, [])
+
+  const handleCellClick = useCallback((index: number, highlighted: boolean) => {
+    if (highlighted) dispatch({ type: 'submit' })
+    else dispatch({ type: 'select', index })
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -155,7 +215,6 @@ export function HackConnect({ onExit }: HackConnectProps) {
 
       if (stateRef.current.phase === 'failure') {
         event.preventDefault()
-        shiftAccumulatorRef.current = 0
         dispatch({ type: 'restart' })
         return
       }
@@ -202,8 +261,7 @@ export function HackConnect({ onExit }: HackConnectProps) {
   return (
     <section className={styles.window} aria-label="HackConnect.exe">
       <div
-        className={`${styles.screen} ${state.flashVersion > 0 ? styles.errorFlash : ''}`}
-        key={state.flashVersion}
+        className={styles.screen}
         onPointerMove={handlePointerMove}
         onPointerLeave={resetPointer}
       >
@@ -228,39 +286,22 @@ export function HackConnect({ onExit }: HackConnectProps) {
         <div className={styles.timer}>{formatCountdown(state.remainingMs)}</div>
 
         {state.phase === 'playing' ? (
-          <div
-            className={styles.grid}
-            role="grid"
-            aria-label="IP address grid"
-            onPointerEnter={selectFromGridPointer}
-            onPointerMove={selectFromGridPointer}
+          <NumberGrid
+            values={state.values}
+            selectionStart={state.selectionStart}
+            onPointerSelect={selectFromGridPointer}
             onPointerLeave={resetPointer}
-          >
-            {state.values.map((value, index) => {
-              const highlighted = isSelected(index, state.selectionStart)
-              return (
-                <button
-                  className={`${styles.number} ${highlighted ? styles.numberSelected : ''}`}
-                  key={index}
-                  onClick={() => {
-                    if (highlighted) dispatch({ type: 'submit' })
-                    else dispatch({ type: 'select', index })
-                  }}
-                  type="button"
-                  role="gridcell"
-                  aria-label={`${value}${highlighted ? ', selected' : ''}`}
-                >
-                  {value}
-                </button>
-              )
-            })}
-          </div>
+            onCellClick={handleCellClick}
+          />
         ) : (
           <div className={styles.outcome}>
             <div>{phaseMessage}</div>
             <div>Press any key to continue.</div>
           </div>
         )}
+        {state.flashVersion > 0 ? (
+          <div className={styles.errorFlash} key={state.flashVersion} aria-hidden="true" />
+        ) : null}
       </div>
     </section>
   )

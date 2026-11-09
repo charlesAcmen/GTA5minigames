@@ -6,6 +6,7 @@ export const INITIAL_SELECTION = 33
 export const INITIAL_LIVES = 4
 export const GAME_DURATION_MS = 60_000
 export const SHIFT_INTERVAL_MS = 1_600
+export const TIMER_UPDATE_INTERVAL_MS = 50
 
 export type GamePhase = 'playing' | 'success' | 'failure'
 
@@ -18,13 +19,14 @@ export type HackConnectState = {
   remainingMs: number
   phase: GamePhase
   flashVersion: number
+  shiftVersion: number
+  shiftElapsedMs: number
 }
 
 export type HackConnectAction =
   | { type: 'move'; delta: number }
   | { type: 'select'; index: number }
-  | { type: 'shift' }
-  | { type: 'tick'; elapsedMs: number }
+  | { type: 'advance'; elapsedMs: number }
   | { type: 'submit' }
   | { type: 'restart' }
 
@@ -54,6 +56,8 @@ export function createInitialState(): HackConnectState {
     remainingMs: GAME_DURATION_MS,
     phase: 'playing',
     flashVersion: 0,
+    shiftVersion: 0,
+    shiftElapsedMs: 0,
   }
 }
 
@@ -62,7 +66,13 @@ export function selectedIndexes(start: number) {
 }
 
 export function isSelected(index: number, start: number) {
-  return selectedIndexes(start).includes(index)
+  return wrap(index - start) < TARGET_LENGTH
+}
+
+function rotateLeft(values: string[], count: number) {
+  const offset = count % values.length
+  if (offset === 0) return values
+  return [...values.slice(offset), ...values.slice(0, offset)]
 }
 
 export function hackConnectReducer(
@@ -85,18 +95,17 @@ export function hackConnectReducer(
       }
     case 'select':
       return { ...state, selectionStart: wrap(action.index) }
-    case 'shift': {
-      const [first, ...rest] = state.values
+    case 'advance': {
+      const activeElapsed = Math.min(state.remainingMs, Math.max(0, action.elapsedMs))
+      const remainingMs = Math.max(0, state.remainingMs - activeElapsed)
+      const totalShiftElapsed = state.shiftElapsedMs + activeElapsed
+      const shiftCount = Math.floor(totalShiftElapsed / SHIFT_INTERVAL_MS)
       return {
         ...state,
-        values: [...rest, first],
-        targetStart: wrap(state.targetStart - 1),
-      }
-    }
-    case 'tick': {
-      const remainingMs = Math.max(0, state.remainingMs - action.elapsedMs)
-      return {
-        ...state,
+        values: shiftCount > 0 ? rotateLeft(state.values, shiftCount) : state.values,
+        targetStart: wrap(state.targetStart - shiftCount),
+        shiftVersion: state.shiftVersion + shiftCount,
+        shiftElapsedMs: totalShiftElapsed % SHIFT_INTERVAL_MS,
         remainingMs,
         phase: remainingMs === 0 ? 'failure' : state.phase,
       }

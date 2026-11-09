@@ -13,6 +13,11 @@ declare module '*.svg' {
   export default source
 }
 
+declare module '*.wav' {
+  const source: string
+  export default source
+}
+
 declare module '*.css'
 
 declare module '*.module.css' {

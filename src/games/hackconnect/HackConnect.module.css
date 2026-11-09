@@ -151,11 +151,10 @@
   text-align: center;
 }
 
-.errorFlash::after {
+.errorFlash {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  content: '';
   background: #e61717;
   animation: error-pulse 360ms ease-out both;
 }

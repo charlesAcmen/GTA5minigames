@@ -1,6 +1,10 @@
+import { lazy } from 'react'
 import icon from './assets/icon.webp'
-import { HackConnect } from './HackConnect'
 import type { ProgramDefinition } from '../types'
+
+const HackConnect = lazy(() => import('./HackConnect').then((module) => ({
+  default: module.HackConnect,
+})))
 
 export const hackConnectProgram = {
   id: 'hackconnect',
