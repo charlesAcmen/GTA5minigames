@@ -1,5 +1,5 @@
 // File seconds in CASINO_FINGERPRINT_SUCCESS_REFERENCE.md (slowdown unknown).
-export const SUCCESS_EXIT_MS = 4600
+export const SUCCESS_EXIT_MS = 3000
 type Band = readonly [top: number, height: number, color: string]
 const blue = '#1700f5', green = '#164600', yellow = '#d4ed00', violet = '#9872ef'
 const bands = {

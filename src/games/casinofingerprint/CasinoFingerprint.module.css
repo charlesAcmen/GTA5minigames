@@ -72,8 +72,8 @@
 
 .pieceGrid { position: absolute; top: 36px; left: 67px; display: grid; grid-template-columns: repeat(2, 84px); gap: 13px 14px; }
 .piece { position: relative; width: 84px; height: 84px; padding: 0; border: 0; background: #030503; outline: none; box-shadow: none; }
-.piece img, .decoyTile { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(5) contrast(40); opacity: .45; transition: opacity 65ms linear; }
-.piece.selected img, .piece.selected .decoyTile { opacity: 1; }
+.piece img, .decoyTile { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(2.5); opacity: .45; transition: opacity 65ms linear; }
+.piece.selected img, .piece.selected .decoyTile { opacity: 1; filter: grayscale(1) brightness(3.6); }
 .piece.cursor::after, .piece:hover:not(:disabled)::after {
   position: absolute; content: ''; inset: -6px; pointer-events: none;
   background:
@@ -242,4 +242,9 @@
 .footerMicro .statusLights i:nth-child(-n+4) { width: 3px; transform: skewX(-12deg); }
 @keyframes statusFlow { 0%, 25%, 100% { background: #152d2b; } 8%, 16% { background: #99e7df; box-shadow: 0 0 2px #78cfc7; } }
 @media (prefers-reduced-motion: reduce) { .statusLights i { animation: none; } }
+
+
+/* Screenshot decoys have brighter source pixels than the answer assets.
+   Adjust source luminance only; preserve the shared opacity and soft edges. */
+.decoyTile image { filter: brightness(.55); }
 

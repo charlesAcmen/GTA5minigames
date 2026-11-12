@@ -5,7 +5,7 @@ export const CONNECTION_MS = 240_000
 export const SCRAMBLE_MS = 90_000
 export const ATTEMPTS = 6
 export const ROUND_COUNT = 2
-export const BOOT_MS = 4767
+export const BOOT_MS = 3210
 export const PROCESS_MS = 1600
 export const FEEDBACK_MS = 1100
 
