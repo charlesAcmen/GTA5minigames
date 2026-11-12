@@ -7,6 +7,7 @@ export const INITIAL_LIVES = 4
 export const GAME_DURATION_MS = 60_000
 export const SHIFT_INTERVAL_MS = 1_600
 export const TIMER_UPDATE_INTERVAL_MS = 50
+export const SUBMISSION_TOLERANCE_CELLS = 1
 
 export type GamePhase = 'playing' | 'success' | 'failure'
 
@@ -30,18 +31,18 @@ export type HackConnectAction =
   | { type: 'submit' }
   | { type: 'restart' }
 
-function randomOctet() {
-  return Math.floor(Math.random() * 99).toString().padStart(2, '0')
+function randomOctet(random: () => number) {
+  return Math.floor(random() * 99).toString().padStart(2, '0')
 }
 
 function wrap(index: number) {
   return ((index % GRID_SIZE) + GRID_SIZE) % GRID_SIZE
 }
 
-export function createInitialState(): HackConnectState {
-  const values = Array.from({ length: GRID_SIZE }, randomOctet)
-  const target = Array.from({ length: TARGET_LENGTH }, randomOctet)
-  const targetStart = Math.floor(Math.random() * GRID_SIZE)
+export function createInitialState(random: () => number = Math.random): HackConnectState {
+  const values = Array.from({ length: GRID_SIZE }, () => randomOctet(random))
+  const target = Array.from({ length: TARGET_LENGTH }, () => randomOctet(random))
+  const targetStart = Math.floor(random() * GRID_SIZE)
 
   for (let offset = 0; offset < TARGET_LENGTH; offset += 1) {
     values[wrap(targetStart + offset)] = target[offset]
@@ -67,6 +68,12 @@ export function selectedIndexes(start: number) {
 
 export function isSelected(index: number, start: number) {
   return wrap(index - start) < TARGET_LENGTH
+}
+
+export function isSubmissionAccepted(selectionStart: number, targetStart: number) {
+  const forwardDistance = wrap(selectionStart - targetStart)
+  const shortestDistance = Math.min(forwardDistance, GRID_SIZE - forwardDistance)
+  return shortestDistance <= SUBMISSION_TOLERANCE_CELLS
 }
 
 function rotateLeft(values: string[], count: number) {
@@ -111,7 +118,7 @@ export function hackConnectReducer(
       }
     }
     case 'submit': {
-      if (state.selectionStart === state.targetStart) {
+      if (isSubmissionAccepted(state.selectionStart, state.targetStart)) {
         return { ...state, phase: 'success' }
       }
 

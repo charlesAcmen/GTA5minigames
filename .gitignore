@@ -43,3 +43,8 @@ reference-repos/
 *.py[cod]
 scripts/
 
+*.mp4
+*.jpg
+*.png
+files/
+!files/docs/

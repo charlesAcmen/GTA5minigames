@@ -1,7 +1,8 @@
 import type { ComponentType, LazyExoticComponent } from 'react'
+import type { GameRuntime } from '../runtime/GameRuntime'
 
 export type GameProps = {
-  onExit: () => void
+  runtime: GameRuntime
 }
 
 export type GameComponent =

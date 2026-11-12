@@ -1,5 +1,10 @@
+import { AudioProvider } from './audio/AudioProvider'
 import { DesktopShell } from './shell/DesktopShell'
 
 export function App() {
-  return <DesktopShell />
+  return (
+    <AudioProvider>
+      <DesktopShell />
+    </AudioProvider>
+  )
 }

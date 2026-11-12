@@ -4,7 +4,7 @@ export const COLUMN_PHASE_STEP = 1 / 16
 export const INITIAL_PERIOD_MS = 2_200
 export const PERIOD_MULTIPLIER = 0.93
 export const MOTION_AMPLITUDE_PX = 85
-export const HIT_TOLERANCE_PX = 15
+export const HIT_TOLERANCE_PX = 17
 export const COMPLETION_HOLD_MS = 650
 
 export type DataCrackPhase = 'playing' | 'success-hold' | 'success'

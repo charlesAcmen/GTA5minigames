@@ -62,33 +62,37 @@ function wrap(value: number, size: number) {
   return ((value % size) + size) % size
 }
 
-function randomLetter(exclude: string) {
+function randomLetter(exclude: string, random: () => number) {
   let letter = exclude
   while (letter === exclude) {
-    letter = ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
+    letter = ALPHABET[Math.floor(random() * ALPHABET.length)]
   }
   return letter
 }
 
-function createColumn(targetLetter: string, speedPxPerSecond: number): BruteForceColumn {
-  const targetIndex = Math.floor(Math.random() * BUFFERED_ROW_COUNT)
+function createColumn(
+  targetLetter: string,
+  speedPxPerSecond: number,
+  random: () => number,
+): BruteForceColumn {
+  const targetIndex = Math.floor(random() * BUFFERED_ROW_COUNT)
   const letters = Array.from(
     { length: BUFFERED_ROW_COUNT },
-    () => randomLetter(targetLetter),
+    () => randomLetter(targetLetter, random),
   )
   letters[targetIndex] = targetLetter
 
   return {
     letters,
     targetIndex,
-    offsetPx: Math.random() * CYCLE_HEIGHT_PX,
+    offsetPx: random() * CYCLE_HEIGHT_PX,
     speedPxPerSecond,
     locked: false,
   }
 }
 
-function createColumnSpeeds(count: number) {
-  const ascending = Math.random() >= 0.5
+function createColumnSpeeds(count: number, random: () => number) {
+  const ascending = random() >= 0.5
   const start = ascending ? MIN_COLUMN_SPEED : MAX_COLUMN_SPEED
   const end = ascending ? MAX_COLUMN_SPEED : MIN_COLUMN_SPEED
   const speeds = [start]
@@ -96,7 +100,7 @@ function createColumnSpeeds(count: number) {
   for (let index = 1; index < count - 1; index += 1) {
     const progress = index / (count - 1)
     const baseline = start + (end - start) * progress
-    const jitter = (Math.random() * 2 - 1) * SPEED_JITTER
+    const jitter = (random() * 2 - 1) * SPEED_JITTER
     const previous = speeds[index - 1]
     speeds.push(Math.max(
       previous - MAX_ADJACENT_SPEED_DELTA,
@@ -108,16 +112,16 @@ function createColumnSpeeds(count: number) {
   return speeds
 }
 
-function createColumns(password: string) {
-  const speeds = createColumnSpeeds(password.length)
-  return password.split('').map((letter, index) => createColumn(letter, speeds[index]))
+function createColumns(password: string, random: () => number = Math.random) {
+  const speeds = createColumnSpeeds(password.length, random)
+  return password.split('').map((letter, index) => createColumn(letter, speeds[index], random))
 }
 
-export function createInitialState(): BruteForceState {
-  const password = GTA_PASSWORDS[Math.floor(Math.random() * GTA_PASSWORDS.length)]
+export function createInitialState(random: () => number = Math.random): BruteForceState {
+  const password = GTA_PASSWORDS[Math.floor(random() * GTA_PASSWORDS.length)]
   return {
     password,
-    columns: createColumns(password),
+    columns: createColumns(password, random),
     selectedColumn: 0,
     lives: INITIAL_LIVES,
     remainingMs: GAME_DURATION_MS,

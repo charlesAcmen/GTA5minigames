@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useReducer, useRef } from 'react'
 import { useGameAudio } from '../../audio/useGameAudio'
+import { useGameKeyDown, useGameLoop } from '../../runtime/gameHooks'
+import type { GameProps } from '../types'
 import wordmark from './assets/wordmark.webp'
 import styles from './BruteForce.module.css'
 import {
@@ -11,72 +13,52 @@ import {
   getLetterTop,
 } from './logic'
 
-type BruteForceProps = {
-  onExit: () => void
-}
-
-export function BruteForce({ onExit }: BruteForceProps) {
+export function BruteForce({ runtime }: GameProps) {
   const [state, dispatch] = useReducer(bruteForceReducer, undefined, createInitialState)
   const stateRef = useRef(state)
   stateRef.current = state
 
-  useGameAudio({
+  useGameAudio(runtime, {
     phase: state.phase,
     moveToken: state.selectedColumn,
     hitVersion: state.lockVersion,
     wrongVersion: state.flashVersion,
   })
 
-  useEffect(() => {
-    let frameId = 0
-    let lastTime = performance.now()
+  useGameLoop(runtime, (elapsed) => {
+    if (stateRef.current.phase === 'playing') {
+      dispatch({ type: 'advance', elapsedMs: elapsed })
+    }
+  })
 
-    const animate = (now: number) => {
-      const elapsed = Math.max(0, now - lastTime)
-      lastTime = now
-      if (stateRef.current.phase === 'playing') {
-        dispatch({ type: 'advance', elapsedMs: elapsed })
-      }
-      frameId = requestAnimationFrame(animate)
+  useGameKeyDown(runtime, (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      runtime.exit({ outcome: 'quit' })
+      return
+    }
+    if (stateRef.current.phase === 'failure') {
+      event.preventDefault()
+      dispatch({ type: 'restart' })
+      return
+    }
+    if (stateRef.current.phase === 'success') {
+      event.preventDefault()
+      runtime.exit({ outcome: 'success' })
+      return
     }
 
-    frameId = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frameId)
-  }, [])
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onExit()
-        return
-      }
-      if (stateRef.current.phase === 'failure') {
-        event.preventDefault()
-        dispatch({ type: 'restart' })
-        return
-      }
-      if (stateRef.current.phase === 'success') {
-        event.preventDefault()
-        onExit()
-        return
-      }
-
-      if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
-        event.preventDefault()
-        dispatch({ type: 'move-column', direction: -1 })
-      } else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
-        event.preventDefault()
-        dispatch({ type: 'move-column', direction: 1 })
-      } else if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        dispatch({ type: 'submit' })
-      }
+    if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
+      event.preventDefault()
+      dispatch({ type: 'move-column', direction: -1 })
+    } else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
+      event.preventDefault()
+      dispatch({ type: 'move-column', direction: 1 })
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      dispatch({ type: 'submit' })
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onExit])
+  })
 
   const selectColumn = useCallback((column: number) => {
     dispatch({ type: 'select-column', column })

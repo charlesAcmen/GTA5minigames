@@ -193,7 +193,7 @@
   top: 198px;
   left: 486px;
   width: 468px;
-  height: 217px;
+  height: 365px;
   padding: 40px 18px 18px;
   background: #fff;
   border: 5px solid #1a44b0;
@@ -252,4 +252,32 @@
 .programIcon:disabled {
   color: #151515;
   opacity: 1;
+}
+
+.gameStatus {
+  position: absolute;
+  z-index: 30;
+  top: 52px;
+  left: 186px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  justify-content: center;
+  width: 900px;
+  height: 616px;
+  color: #25cf35;
+  font-size: 25px;
+  background: #000;
+  border: 10px solid #1a44b0;
+  border-top-width: 45px;
+  border-radius: 9px;
+}
+
+.gameStatus button {
+  padding: 8px 18px;
+  color: #ededed;
+  font: inherit;
+  background: #173f9f;
+  border: 1px solid #ededed;
 }

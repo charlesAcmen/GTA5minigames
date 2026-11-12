@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useReducer, useRef } from 'react'
 import { useGameAudio } from '../../audio/useGameAudio'
+import { useGameKeyDown, useGameLoop } from '../../runtime/gameHooks'
+import type { GameProps } from '../types'
 import wordmark from './assets/wordmark.webp'
 import styles from './DataCrack.module.css'
 import {
@@ -9,73 +11,53 @@ import {
   getColumnGapOffsetPx,
 } from './logic'
 
-type DataCrackProps = {
-  onExit: () => void
-}
-
-export function DataCrack({ onExit }: DataCrackProps) {
+export function DataCrack({ runtime }: GameProps) {
   const [state, dispatch] = useReducer(dataCrackReducer, undefined, createInitialState)
   const stateRef = useRef(state)
   stateRef.current = state
 
-  useGameAudio({
+  useGameAudio(runtime, {
     phase: state.phase === 'playing' ? 'playing' : 'success',
     moveToken: 0,
     hitVersion: state.lockVersion,
     wrongVersion: state.wrongVersion,
   })
 
-  useEffect(() => {
-    let frameId = 0
-    let lastTime = performance.now()
-
-    const animate = (now: number) => {
-      const elapsedMs = Math.max(0, now - lastTime)
-      lastTime = now
-      if (stateRef.current.phase !== 'success') {
-        dispatch({ type: 'advance', elapsedMs })
-      }
-      frameId = requestAnimationFrame(animate)
+  useGameLoop(runtime, (elapsedMs) => {
+    if (stateRef.current.phase !== 'success') {
+      dispatch({ type: 'advance', elapsedMs })
     }
-
-    frameId = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frameId)
-  }, [])
+  })
 
   const submitOrContinue = useCallback(() => {
     if (stateRef.current.phase === 'playing') {
       dispatch({ type: 'submit' })
     } else if (stateRef.current.phase === 'success') {
-      onExit()
+      runtime.exit({ outcome: 'success' })
     }
-  }, [onExit])
+  }, [runtime])
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onExit()
-        return
-      }
-
-      if (stateRef.current.phase === 'success') {
-        event.preventDefault()
-        onExit()
-        return
-      }
-
-      if (
-        stateRef.current.phase === 'playing'
-        && (event.key === 'Enter' || event.key === ' ')
-      ) {
-        event.preventDefault()
-        dispatch({ type: 'submit' })
-      }
+  useGameKeyDown(runtime, (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      runtime.exit({ outcome: 'quit' })
+      return
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onExit])
+    if (stateRef.current.phase === 'success') {
+      event.preventDefault()
+      runtime.exit({ outcome: 'success' })
+      return
+    }
+
+    if (
+      stateRef.current.phase === 'playing'
+      && (event.key === 'Enter' || event.key === ' ')
+    ) {
+      event.preventDefault()
+      dispatch({ type: 'submit' })
+    }
+  })
 
   return (
     <section className={styles.window} aria-label="DataCrack.exe">

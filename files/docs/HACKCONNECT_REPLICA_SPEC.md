@@ -293,7 +293,7 @@ success → External Device
 
 - 每轮60秒，显示格式严格为 `MM:SS:mmm`。
 - 初始四次机会。
-- 提交正确时进入 success。
+- 提交位置与目标起点相同，或仅相邻一格时进入 success；这是离散网格上的最小辅助容差。
 - 提交错误时整屏短暂红色闪烁，并扣除一根信号柱。
 - 四次机会耗尽进入 failure。
 - 倒计时归零进入 failure。
@@ -325,7 +325,7 @@ src/assets/audio/
 
 ## 13. 项目边界与新增游戏规则
 
-每个游戏的界面与逻辑必须自包含；五种标准状态音效例外，统一由 `src/audio/useGameAudio.ts` 和 `src/assets/audio/` 提供：
+每个游戏的界面与逻辑必须自包含；五种标准状态音效例外，由应用级 `AudioProvider` 共享加载，并通过 `src/audio/useGameAudio.ts` 与 `src/assets/audio/` 提供：
 
 ```text
 src/games/<game-id>/
@@ -337,6 +337,8 @@ src/games/<game-id>/
 ```
 
 `index.ts` 导出一个满足 `ProgramDefinition` 的清单。`src/games/registry.ts` 只负责注册，不保存游戏内部逻辑。Shell 不得通过 `if (game === ...)` 硬编码具体小游戏行为。
+
+每次启动由 `GameHost` 创建独立 `GameRuntime`。游戏使用公共的 `useGameLoop` 与 `useGameKeyDown` 注册动画和输入；退出、卸载或渲染异常时，宿主统一中止本局动画帧、输入监听与正在播放的音效。
 
 暂存第三方反编译或社区研究仓库时使用 `.reference-repos/` 或 `reference-repos/`。这两个目录已加入 `.gitignore`，其中代码不得未经许可证审查复制进正式实现。
 

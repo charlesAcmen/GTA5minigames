@@ -1,6 +1,8 @@
-import { memo, useCallback, useEffect, useReducer, useRef } from 'react'
+import { memo, useCallback, useReducer, useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useGameAudio } from '../../audio/useGameAudio'
+import type { GameProps } from '../types'
+import { useGameKeyDown, useGameLoop } from '../../runtime/gameHooks'
 import wordmark from './assets/wordmark.webp'
 import styles from './HackConnect.module.css'
 import {
@@ -13,10 +15,6 @@ import {
   hackConnectReducer,
   isSelected,
 } from './logic'
-
-type HackConnectProps = {
-  onExit: () => void
-}
 
 function SecurityGlobeIcon() {
   return (
@@ -96,48 +94,32 @@ const NumberGrid = memo(function NumberGrid({
   )
 })
 
-export function HackConnect({ onExit }: HackConnectProps) {
+export function HackConnect({ runtime }: GameProps) {
   const [state, dispatch] = useReducer(hackConnectReducer, undefined, createInitialState)
   const stateRef = useRef(state)
   const pointerRef = useRef({ x: 0, y: 0, deltaX: 0, deltaY: 0, ready: false })
   const gridBoundsRef = useRef<DOMRect | null>(null)
+  const pendingElapsedRef = useRef(0)
 
   stateRef.current = state
-  useGameAudio({
+  useGameAudio(runtime, {
     phase: state.phase,
     moveToken: `${state.selectionStart}:${state.shiftVersion}`,
     hitVersion: state.phase === 'success' ? 1 : 0,
     wrongVersion: state.flashVersion,
   })
 
-  useEffect(() => {
-    let frameId = 0
-    let lastTime = performance.now()
-    let pendingElapsed = 0
-
-    const animate = (now: number) => {
-      const elapsed = Math.max(0, now - lastTime)
-      lastTime = now
-
-      if (stateRef.current.phase === 'playing') {
-        pendingElapsed += elapsed
-        if (pendingElapsed >= TIMER_UPDATE_INTERVAL_MS) {
-          dispatch({ type: 'advance', elapsedMs: pendingElapsed })
-          pendingElapsed = 0
-        }
-      } else {
-        pendingElapsed = 0
+  useGameLoop(runtime, (elapsed) => {
+    if (stateRef.current.phase === 'playing') {
+      pendingElapsedRef.current += elapsed
+      if (pendingElapsedRef.current >= TIMER_UPDATE_INTERVAL_MS) {
+        dispatch({ type: 'advance', elapsedMs: pendingElapsedRef.current })
+        pendingElapsedRef.current = 0
       }
-
-      frameId = requestAnimationFrame(animate)
+    } else {
+      pendingElapsedRef.current = 0
     }
-
-    frameId = requestAnimationFrame(animate)
-
-    return () => {
-      cancelAnimationFrame(frameId)
-    }
-  }, [])
+  })
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const pointer = pointerRef.current
@@ -205,54 +187,49 @@ export function HackConnect({ onExit }: HackConnectProps) {
     else dispatch({ type: 'select', index })
   }, [])
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onExit()
-        return
-      }
-
-      if (stateRef.current.phase === 'failure') {
-        event.preventDefault()
-        dispatch({ type: 'restart' })
-        return
-      }
-
-      if (stateRef.current.phase === 'success') {
-        event.preventDefault()
-        onExit()
-        return
-      }
-
-      const moves: Partial<Record<string, number>> = {
-        ArrowUp: -GRID_COLUMNS,
-        w: -GRID_COLUMNS,
-        W: -GRID_COLUMNS,
-        ArrowDown: GRID_COLUMNS,
-        s: GRID_COLUMNS,
-        S: GRID_COLUMNS,
-        ArrowLeft: -1,
-        a: -1,
-        A: -1,
-        ArrowRight: 1,
-        d: 1,
-        D: 1,
-      }
-      const delta = moves[event.key]
-
-      if (delta !== undefined) {
-        event.preventDefault()
-        dispatch({ type: 'move', delta })
-      } else if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        dispatch({ type: 'submit' })
-      }
+  useGameKeyDown(runtime, (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      runtime.exit({ outcome: 'quit' })
+      return
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onExit])
+    if (stateRef.current.phase === 'failure') {
+      event.preventDefault()
+      dispatch({ type: 'restart' })
+      return
+    }
+
+    if (stateRef.current.phase === 'success') {
+      event.preventDefault()
+      runtime.exit({ outcome: 'success' })
+      return
+    }
+
+    const moves: Partial<Record<string, number>> = {
+      ArrowUp: -GRID_COLUMNS,
+      w: -GRID_COLUMNS,
+      W: -GRID_COLUMNS,
+      ArrowDown: GRID_COLUMNS,
+      s: GRID_COLUMNS,
+      S: GRID_COLUMNS,
+      ArrowLeft: -1,
+      a: -1,
+      A: -1,
+      ArrowRight: 1,
+      d: 1,
+      D: 1,
+    }
+    const delta = moves[event.key]
+
+    if (delta !== undefined) {
+      event.preventDefault()
+      dispatch({ type: 'move', delta })
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      dispatch({ type: 'submit' })
+    }
+  })
 
   const phaseMessage = state.phase === 'success'
     ? 'Successfully connected to the host.'

@@ -1,0 +1,27 @@
+.sequence { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+.sequence[data-stage='black'] { background: #000; }
+.ghosts { position: absolute; inset: 0; opacity: .52; transform: translateX(var(--shift)); }
+.sequence:not([data-stage='shell']) .ghosts { display: none; }
+.window { position: absolute; left: 17%; top: 7%; width: 66%; height: 85%; border: 1px solid #858979; color: #b9bc9a; }
+.window:nth-child(2) { transform: translate(calc(var(--shift) * -2), 18px); opacity: .4; }
+.window:nth-child(3) { transform: translate(calc(var(--shift) * 3), -9px); opacity: .25; }
+.window header { height: 10px; background: #9c9e85; color: #15180c; font-size: 6px; }
+.window header span { margin-left: 23%; }
+.components { position: absolute; left: 2%; top: 12%; width: 36%; height: 81%; border: 1px solid #777e65; display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; padding: 30px 37px; }
+.components b { position: absolute; top: 0; left: 0; right: 0; font-size: 6px; background: #888e63; }
+.components i { border: 1px solid #777e65; }
+.target { position: absolute; left: 41%; top: 3%; width: 56%; height: 74%; border: 1px solid #777e65; }
+.window footer { position: absolute; left: 41%; right: 3%; bottom: 6%; height: 17%; border: 1px solid #777e65; border-top: 7px solid #a9ab8e; font-size: 6px; }
+.bands { position: absolute; inset: 0; }
+.bands i { position: absolute; left: -4%; width: 108%; opacity: .82; mix-blend-mode: screen; clip-path: polygon(0 0, var(--cut) 0, var(--cut) 7%, 100% 7%, 100% 93%, 74% 93%, 74% 100%, 21% 100%, 21% 94%, 0 94%); }
+.message, .reducedMessage { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); white-space: nowrap; font: 400 39px 'Courier New', monospace; letter-spacing: 3px; }
+.message { text-shadow: 3px 0 #72804070, -2px 1px #9784bf60; }
+.message[data-text='hidden'] { visibility: hidden; }
+.message[data-text='broken'] { opacity: .4; clip-path: polygon(0 0, 100% 0, 100% 23%, 43% 23%, 43% 34%, 100% 34%, 100% 58%, 10% 58%, 10% 67%, 100% 67%, 100% 100%, 0 100%); }
+.message[data-text='trace'] { opacity: .22; clip-path: polygon(40% 15%, 100% 15%, 100% 28%, 61% 28%, 61% 63%, 100% 63%, 100% 78%, 40% 78%); }
+.reducedMessage { display: none; color: #d5dec2; }
+@media (prefers-reduced-motion: reduce) {
+  .sequence { background: #030504; }
+  .ghosts, .bands, .message { display: none; }
+  .reducedMessage { display: block; }
+}
